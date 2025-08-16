@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medication Reminder</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- Login Section -->
+    <section id="loginSection">
+        <h2>Login</h2>
+        <form id="loginForm">
+            <label for="loginEmail">Email:</label>
+            <input type="email" id="loginEmail" required>
+
+            <label for="loginPassword">Password:</label>
+            <input type="password" id="loginPassword" required>
+
+            <button type="submit">Login</button>
+        </form>
+<!-- Footer link -->
+    <div class="login-footer">
+        <span>Don't have an account?</span>
+        <a href="/signup.html">Sign up</a>
+    </div>
+    </section>
+<section id="medicineSection" style="display:none;">
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="container">
+                <h1 class="app-title">💊 Medication Reminder</h1>
+                <div class="current-time" id="currentTime"></div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <div class="container">
+                <!-- Add Medication Section -->
+                <section class="add-medication-section">
+                    <button class="btn btn--primary toggle-form-btn" id="toggleFormBtn">
+                        <span class="btn-icon">+</span>
+                        Add Medication
+                    </button>
+                    
+                    <div class="add-medication-form hidden" id="addMedicationForm">
+                        <div class="card">
+                            <div class="card__header">
+                                <h2>Add New Medication</h2>
+                            </div>
+                            <div class="card__body">
+                                <form id="medicationForm">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label" for="medicationName">Medication Name</label>
+                                            <div class="autocomplete-container">
+                                                <input type="text" class="form-control" id="medicationName" required placeholder="Start typing medication name..." autocomplete="off">
+                                                <div class="autocomplete-dropdown hidden" id="autocompleteDropdown"></div>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label" for="medicationDose">Dose</label>
+                                            <input type="text" class="form-control" id="medicationDose" required placeholder="e.g., 100mg">
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label" for="medicationSideEffects">Side Effects</label>
+                                        <div class="side-effects-container">
+                                            <textarea class="form-control" id="medicationSideEffects" rows="3" placeholder="Side effects will auto-populate when you select a known medication..." readonly></textarea>
+                                            <button type="button" class="btn btn--outline btn--sm edit-side-effects-btn hidden" id="editSideEffectsBtn">Edit Side Effects</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label" for="medicationInstructions">Instructions</label>
+                                        <select class="form-control" id="medicationInstructions">
+                                            <option value="with food">With food</option>
+                                            <option value="empty stomach">Empty stomach</option>
+                                            <option value="with water">With water</option>
+                                            <option value="before bed">Before bed</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label" for="scheduleType">Dosing Schedule</label>
+                                        <select class="form-control" id="scheduleType">
+                                            <option value="daily">Once daily</option>
+                                            <option value="twice-daily">Twice daily</option>
+                                            <option value="every-x-hours">Every X hours</option>
+                                            <option value="weekly">Weekly</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="schedule-options" id="scheduleOptions">
+                                        <!-- Daily schedule -->
+                                        <div class="schedule-option" id="dailySchedule">
+                                            <div class="form-group">
+                                                <label class="form-label" for="dailyTime">Time</label>
+                                                <input type="time" class="form-control" id="dailyTime" value="09:00">
+                                            </div>
+                                        </div>
+
+                                        <!-- Twice daily schedule -->
+                                        <div class="schedule-option hidden" id="twiceDailySchedule">
+                                            <div class="form-row">
+                                                <div class="form-group">
+                                                    <label class="form-label" for="morningTime">Morning Time</label>
+                                                    <input type="time" class="form-control" id="morningTime" value="08:00">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="form-label" for="eveningTime">Evening Time</label>
+                                                    <input type="time" class="form-control" id="eveningTime" value="20:00">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Every X hours schedule -->
+                                        <div class="schedule-option hidden" id="everyHoursSchedule">
+                                            <div class="form-row">
+                                                <div class="form-group">
+                                                    <label class="form-label" for="intervalHours">Every (hours)</label>
+                                                    <input type="number" class="form-control" id="intervalHours" min="1" max="24" value="6">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="form-label" for="startTime">Start Time</label>
+                                                    <input type="time" class="form-control" id="startTime" value="08:00">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                       <!-- Weekly schedule -->
+<div class="schedule-option hidden" id="weeklySchedule">
+  <div class="form-row">
+    <div class="form-group">
+      <label class="form-label" for="weeklyDay">Day of Week</label>
+      <select class="form-control" id="weeklyDay">
+        <option value="0">Sunday</option>
+        <option value="1" selected>Monday</option>
+        <option value="2">Tuesday</option>
+        <option value="3">Wednesday</option>
+        <option value="4">Thursday</option>
+        <option value="5">Friday</option>
+        <option value="6">Saturday</option>
+      </select>
+    </div>
+
+
+    <div class="form-group">
+      <label class="form-label" for="weeklyTime">Time</label>
+      <input class="form-control" id="weeklyTime" type="time" />
+    </div>
+  </div>
+</div>
+
+
+                                    <div class="form-actions">
+                                        <button type="button" class="btn btn--outline" id="cancelBtn">Cancel</button>
+                                        <button type="submit" class="btn btn--primary">Save Medication</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Medications Dashboard -->
+                <section class="medications-dashboard">
+                    <h2>Current Medications</h2>
+                    <div class="medications-grid" id="medicationsGrid">
+                        <!-- Medications will be rendered here -->
+                    </div>
+                </section>
+
+                <!-- Missed Doses Section -->
+                <section class="missed-doses-section">
+                    <h2>Missed Doses</h2>
+                    <div class="missed-doses-list" id="missedDosesList">
+                        <!-- Missed doses will be rendered here -->
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Edit Modal -->
+        <div class="modal hidden" id="editModal">
+            <div class="modal-content">
+                <div class="card">
+                    <div class="card__header">
+                        <h2>Edit Medication</h2>
+                        <button class="modal-close" id="closeEditModal">&times;</button>
+                    </div>
+                    <div class="card__body">
+                        <form id="editMedicationForm">
+                            <input type="hidden" id="editMedicationId">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label" for="editMedicationName">Medication Name</label>
+                                    <input type="text" class="form-control" id="editMedicationName" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="editMedicationDose">Dose</label>
+                                    <input type="text" class="form-control" id="editMedicationDose" required>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="editMedicationSideEffects">Side Effects</label>
+                                <textarea class="form-control" id="editMedicationSideEffects" rows="3"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="editMedicationInstructions">Instructions</label>
+                                <select class="form-control" id="editMedicationInstructions">
+                                    <option value="with food">With food</option>
+                                    <option value="empty stomach">Empty stomach</option>
+                                    <option value="with water">With water</option>
+                                    <option value="before bed">Before bed</option>
+                                </select>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="button" class="btn btn--outline" id="cancelEditBtn">Cancel</button>
+                                <button type="submit" class="btn btn--primary">Update Medication</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Side Effects Modal -->
+        <div class="modal hidden" id="sideEffectsModal">
+            <div class="modal-content">
+                <div class="card">
+                    <div class="card__header">
+                        <h2>Side Effects Details</h2>
+                        <button class="modal-close" id="closeSideEffectsModal">&times;</button>
+                    </div>
+                    <div class="card__body">
+                        <div class="side-effects-details" id="sideEffectsDetailsContent">
+                            <!-- Side effects details will be populated here -->
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn btn--primary" id="closeSideEffectsBtn">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification Modal -->
+        <div class="modal hidden" id="notificationModal">
+            <div class="modal-content notification-modal">
+                <div class="card">
+                    <div class="card__header">
+                        <h2>💊 Time for your medication!</h2>
+                    </div>
+                    <div class="card__body">
+                        <div class="notification-content" id="notificationContent">
+                            <!-- Notification details will be populated here -->
+                        </div>
+                        <div class="notification-actions">
+                            <div class="snooze-options">
+                                <label class="form-label">Snooze for:</label>
+                                <div class="snooze-buttons">
+                                    <button class="btn btn--outline btn--sm snooze-btn" data-minutes="5">5 min</button>
+                                    <button class="btn btn--outline btn--sm snooze-btn" data-minutes="10">10 min</button>
+                                    <button class="btn btn--outline btn--sm snooze-btn" data-minutes="15">15 min</button>
+                                    <button class="btn btn--outline btn--sm snooze-btn" data-minutes="30">30 min</button>
+                                </div>
+                            </div>
+                            <div class="main-actions">
+                                <button class="btn btn--outline" id="markMissedBtn">Mark as Missed</button>
+                                <button class="btn btn--primary" id="markTakenBtn">Mark as Taken</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+
+ </section>
+</body>
+</html>

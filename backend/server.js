@@ -26,7 +26,7 @@ try {
 /* ---------- Middleware (CORS + JSON) ---------- */
 /* CORS must be before any routes */
 const corsOptions = {
-  origin: ['http://localhost:5500'], // your frontend origin
+  origin: ['https://medicine-remainder-9r9u076hf-koushiks-projects-8a22523c.vercel.app/'], // your frontend origin
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
@@ -237,3 +237,4 @@ app.post('/api/test-push', authMiddleware, async (req, res) => {
 /* ---------- Start ---------- */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 API up on http://localhost:${PORT}`));
+

@@ -18,25 +18,30 @@ const admin = require('./firebaseAdmin'); // single shared Firebase Admin init
 
 const app = express();
 
-/* ---------- CORS: allow your Vercel site ---------- */
-const cors = require('cors');
+/* ---------- Manual CORS: answer preflight early and always ---------- */
+const ALLOWED_ORIGINS = [
+  'https://medicine-remainder-five.vercel.app', // your Vercel domain
+];
 
-const corsOptions = {
-  origin: ['https://medicine-remainder-five.vercel.app'], // EXACT origin
-  credentials: true,
-  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization'],
-  optionsSuccessStatus: 204,
-};
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Vary', 'Origin'); // important for proxies/CDN
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  }
+  // short-circuit OPTIONS preflight so it can't hit other middleware
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
 
-app.use(cors(corsOptions));       // apply to all routes
-app.options('*', cors(corsOptions));  // reply to preflights quickly
-
-/* ---------- Body parsers next ---------- */
+/* ---------- Body parsers ---------- */
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-/* ---------- Security / Perf ---------- */
+/* ---------- Security / Perf (AFTER CORS, AFTER body parsers) ---------- */
 const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
@@ -47,9 +52,18 @@ app.use(compression());
 app.use(morgan('tiny'));
 app.set('trust proxy', 1);
 
-const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 300 });
-app.use('/api/', apiLimiter);
+// Do not rate-limit preflights
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 300,
+  skip: (req) => req.method === 'OPTIONS',
+});
+app.use('/api', apiLimiter);
 
+/* ---------- (keep your Mongo connect BELOW this block) ---------- */
+// mongoose.connect(...);
+// routes: /api/signup, /api/login, /api/medications, etc.
+// DO NOT wrap all /api with a global auth — only protect the routes that need it.
 
 /* ---------- DB Connect ---------- */
 mongoose
@@ -250,6 +264,7 @@ app.post('/api/test-push', authMiddleware, async (req, res) => {
 /* ---------- Start ---------- */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 API up on http://localhost:${PORT}`));
+
 
 
 

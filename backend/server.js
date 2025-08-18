@@ -97,7 +97,10 @@ function authMiddleware(req, res, next) {
 
 // Health
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
-
+app.get('/api/version', (req,res)=>res.json({
+  commit: process.env.RENDER_GIT_COMMIT || 'local',
+  builtAt: new Date().toISOString()
+}));
 // Signup
 app.post('/api/signup', async (req, res) => {
   try {
@@ -267,6 +270,7 @@ app.post('/api/test-push', authMiddleware, async (req, res) => {
 /* ---------- Start ---------- */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 API up on http://localhost:${PORT}`));
+
 
 
 

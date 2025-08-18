@@ -33,10 +33,11 @@ function setCorsHeaders(req, res) {
 }
 
 // Preflight for all API routes
-app.options('/api/*', (req, res) => {
+app.options(/^\/api\/.*$/, (req, res) => {
   setCorsHeaders(req, res);
   return res.sendStatus(204);
 });
+
 
 // CORS headers for normal requests
 app.use((req, res, next) => {
@@ -266,6 +267,7 @@ app.post('/api/test-push', authMiddleware, async (req, res) => {
 /* ---------- Start ---------- */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 API up on http://localhost:${PORT}`));
+
 
 
 

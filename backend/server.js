@@ -14,19 +14,8 @@ const app = express();
 
 /* ---------- Firebase Admin (push) ---------- */
 /* ---------- Firebase Admin (push) ---------- */
-const admin = require('firebase-admin');
-try {
-  if (!admin.apps.length) {
-    const svc = process.env.FIREBASE_SERVICE_ACCOUNT_JSON
-      ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON)
-      // Local dev fallback (file must be gitignored and never pushed)
-      : require('./firebase-service-account.json');
 
-    admin.initializeApp({ credential: admin.credential.cert(svc) });
-  }
-} catch (e) {
-  console.warn('firebase-admin init:', e.message);
-}
+const admin = require('./firebaseAdmin');
 
 
 /* ---------- Middleware (CORS + JSON) ---------- */
@@ -243,5 +232,6 @@ app.post('/api/test-push', authMiddleware, async (req, res) => {
 /* ---------- Start ---------- */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 API up on http://localhost:${PORT}`));
+
 
 

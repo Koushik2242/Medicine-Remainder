@@ -3,12 +3,10 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const cron = require('node-cron');
 const nodemailer = require('nodemailer');
+const admin = require('./firebaseAdmin'); // shared initialized Admin
 
-const admin = require('./firebaseAdmin');           // ✅ shared initialized admin
-const Medication = require('./models/Medication');
-const User = require('./models/User');
+// (Don’t require models up here — wait until after connect)
 
-// ---- Email (optional) ----
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -17,7 +15,6 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// ---- Helpers ----
 async function sendEmailReminder(user, med) {
   if (!user?.email) return;
   try {
@@ -47,7 +44,6 @@ async function sendPushReminder(user, med) {
   }
 }
 
-// ---- Start cron after DB is connected ----
 async function start() {
   const uri = process.env.MONGODB_URI || process.env.MONGO_URI;
   if (!uri) {
@@ -57,18 +53,25 @@ async function start() {
 
   try {
     mongoose.set('strictQuery', true);
-    await mongoose.connect(uri, {
-      // these options are fine for Mongoose 8; omit legacy ones
-    });
+    await mongoose.connect(uri);
     console.log('✅ Worker: Connected to MongoDB');
   } catch (err) {
     console.error('❌ Worker: MongoDB connection error:', err);
-    return; // don’t start cron without DB
+    return;
   }
 
-  // ---- Cron: every minute, notify once per dose (atomic) ----
+  // ✅ Require models AFTER connection so they bind to the live default connection
+  const Medication = require('./models/Medication');
+  const User = require('./models/User');
+
+  // ---- Cron: every minute (notify once per dose) ----
   cron.schedule('* * * * *', async () => {
     try {
+      if (mongoose.connection.readyState !== 1) {
+        console.warn('⏳ DB not ready, skipping this tick');
+        return;
+      }
+
       const now = new Date();
       const inOneMinute = new Date(now.getTime() + 60 * 1000);
 
@@ -80,7 +83,7 @@ async function start() {
       for (const med of dueMeds) {
         const user = med.userId;
 
-        // atomic claim (notify once per exact nextDose)
+        // Atomic: only notify once for this exact nextDose
         const claimed = await Medication.findOneAndUpdate(
           {
             _id: med._id,

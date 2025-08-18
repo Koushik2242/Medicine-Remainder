@@ -1,18 +1,12 @@
 // backend/reminder.js
+require('dotenv').config();
+const mongoose = require('mongoose');
 const cron = require('node-cron');
 const nodemailer = require('nodemailer');
-const admin = require('./firebaseAdmin');  // ✅ use the shared instance
+
+const admin = require('./firebaseAdmin');           // ✅ shared initialized admin
 const Medication = require('./models/Medication');
 const User = require('./models/User');
-
-// ❌ remove any "const admin = require('firebase-admin')" lines
-// ❌ remove the try { admin.initializeApp(...) } block entirely
-
-
-// ---- Firebase Admin (safe init) ----
-// ---- Firebase Admin (safe init) ----
-
-
 
 // ---- Email (optional) ----
 const transporter = nodemailer.createTransport({
@@ -53,52 +47,69 @@ async function sendPushReminder(user, med) {
   }
 }
 
-// ---- Cron: every minute, notify once per dose (atomic) ----
-cron.schedule('* * * * *', async () => {
-  try {
-    const now = new Date();
-    const inOneMinute = new Date(now.getTime() + 60 * 1000);
-
-    // due meds in the next minute
-    const dueMeds = await Medication.find({
-      active: true,
-      nextDose: { $gte: now, $lte: inOneMinute },
-    }).populate('userId'); // userId is ref: 'User'
-
-    for (const med of dueMeds) {
-      const user = med.userId;
-
-      // ATOMIC CLAIM: only notify once for THIS exact nextDose
-      const claimed = await Medication.findOneAndUpdate(
-        {
-          _id: med._id,
-          nextDose: med.nextDose, // still the same (client may have moved it)
-          $or: [
-            { notifiedFor: { $exists: false } },
-            { notifiedFor: null },
-            { notifiedFor: { $ne: med.nextDose } },
-          ],
-        },
-        { $set: { notifiedFor: med.nextDose, lastNotifiedAt: new Date() } },
-        { new: true }
-      );
-
-      if (!claimed) {
-        // already notified for this dose OR nextDose moved → skip
-        continue;
-      }
-
-      await sendPushReminder(user, med);
-      await sendEmailReminder(user, med);
-
-      console.log(
-        `🔔 Reminder sent for "${med.name}" to ${user?.email || 'push only'} @ ${new Date().toISOString()}`
-      );
-    }
-  } catch (err) {
-    console.error('Cron job error:', err);
+// ---- Start cron after DB is connected ----
+async function start() {
+  const uri = process.env.MONGODB_URI || process.env.MONGO_URI;
+  if (!uri) {
+    console.error('❌ MONGODB_URI not set');
+    return;
   }
-});
 
+  try {
+    mongoose.set('strictQuery', true);
+    await mongoose.connect(uri, {
+      // these options are fine for Mongoose 8; omit legacy ones
+    });
+    console.log('✅ Worker: Connected to MongoDB');
+  } catch (err) {
+    console.error('❌ Worker: MongoDB connection error:', err);
+    return; // don’t start cron without DB
+  }
 
+  // ---- Cron: every minute, notify once per dose (atomic) ----
+  cron.schedule('* * * * *', async () => {
+    try {
+      const now = new Date();
+      const inOneMinute = new Date(now.getTime() + 60 * 1000);
 
+      const dueMeds = await Medication.find({
+        active: true,
+        nextDose: { $gte: now, $lte: inOneMinute },
+      }).populate('userId');
+
+      for (const med of dueMeds) {
+        const user = med.userId;
+
+        // atomic claim (notify once per exact nextDose)
+        const claimed = await Medication.findOneAndUpdate(
+          {
+            _id: med._id,
+            nextDose: med.nextDose,
+            $or: [
+              { notifiedFor: { $exists: false } },
+              { notifiedFor: null },
+              { notifiedFor: { $ne: med.nextDose } },
+            ],
+          },
+          { $set: { notifiedFor: med.nextDose, lastNotifiedAt: new Date() } },
+          { new: true }
+        );
+
+        if (!claimed) continue;
+
+        await sendPushReminder(user, med);
+        await sendEmailReminder(user, med);
+
+        console.log(
+          `🔔 Reminder sent for "${med.name}" to ${user?.email || 'push only'} @ ${new Date().toISOString()}`
+        );
+      }
+    } catch (err) {
+      console.error('Cron job error:', err);
+    }
+  });
+
+  console.log('⏱️ Worker: Cron scheduled (every minute)');
+}
+
+start();

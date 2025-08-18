@@ -1,3 +1,5 @@
 # Firebase Admin key — never commit
 firebase-service-account.json
 backend/firebase-service-account.json
+.env
+backend/.env

@@ -29,20 +29,31 @@ app.use('/api/', apiLimiter);
 
 /* ---------- CORS (single source of truth) ---------- */
 const ALLOWED_ORIGINS = [
-  'https://medicine-remainder-five.vercel.app', // your Vercel domain
+  'https://medicine-remainder-five.vercel.app',
 ];
-app.use(cors({
-  origin: (origin, cb) => {
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-    return cb(new Error('Not allowed by CORS'));
+
+const corsOptions = {
+  origin: function (origin, cb) {
+    // Allow server-to-server or local tools with no Origin
+    if (!origin) return cb(null, true);
+    // Allow your Vercel site
+    if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    // Block others (but don't crash; just deny)
+    return cb(new Error('CORS not allowed'), false);
   },
-  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization'],
   credentials: true,
-}));
-app.options('*', cors()); // fast preflight
+  optionsSuccessStatus: 204,
+  preflightContinue: false,
+};
 
-/* ---------- Body Parsers ---------- */
+// 1) CORS **before** anything else
+app.use(cors(corsOptions));
+// 2) Make sure all preflights get the headers
+app.options('*', cors(corsOptions));
+
+// 3) Body parsers next
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -245,6 +256,7 @@ app.post('/api/test-push', authMiddleware, async (req, res) => {
 /* ---------- Start ---------- */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 API up on http://localhost:${PORT}`));
+
 
 
 

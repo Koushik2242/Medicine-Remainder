@@ -19,27 +19,36 @@ const admin = require('./firebaseAdmin'); // single shared Firebase Admin init
 const app = express();
 
 /* ---------- Manual CORS: answer preflight early and always ---------- */
-const ALLOWED_ORIGINS = [
-  'https://medicine-remainder-five.vercel.app', // your Vercel domain
-];
+/* ---------- HARDENED CORS: explicit OPTIONS for /api/* ---------- */
+const ALLOWED_ORIGINS = ['https://medicine-remainder-five.vercel.app'];
 
-app.use((req, res, next) => {
+function setCorsHeaders(req, res) {
   const origin = req.headers.origin;
   if (origin && ALLOWED_ORIGINS.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Vary', 'Origin'); // important for proxies/CDN
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    res.set('Access-Control-Allow-Origin', origin);
+    res.set('Vary', 'Origin'); // important behind proxies/CDN
+    res.set('Access-Control-Allow-Credentials', 'true');
   }
-  // short-circuit OPTIONS preflight so it can't hit other middleware
-  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.set('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+}
+
+// 1) Handle ALL preflights on /api/* explicitly
+app.options('/api/*', (req, res) => {
+  setCorsHeaders(req, res);
+  return res.sendStatus(204);
+});
+
+// 2) Add CORS headers for normal (non-OPTIONS) requests too
+app.use((req, res, next) => {
+  setCorsHeaders(req, res);
   next();
 });
 
-/* ---------- Body parsers ---------- */
+/* ---------- Body parsers (after CORS) ---------- */
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
 
 /* ---------- Security / Perf (AFTER CORS, AFTER body parsers) ---------- */
 const helmet = require('helmet');
@@ -264,6 +273,7 @@ app.post('/api/test-push', authMiddleware, async (req, res) => {
 /* ---------- Start ---------- */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 API up on http://localhost:${PORT}`));
+
 
 
 

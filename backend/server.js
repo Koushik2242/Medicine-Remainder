@@ -18,30 +18,21 @@ const admin = require('./firebaseAdmin'); // single shared Firebase Admin init
 
 const app = express();
 
-/* ---------- CORS (must be FIRST) ---------- */
-const ALLOWED_ORIGINS = [
-  'https://medicine-remainder-five.vercel.app', // your Vercel site
-];
+/* ---------- CORS: allow your Vercel site ---------- */
+const cors = require('cors');
 
 const corsOptions = {
-  origin: function (origin, cb) {
-    if (!origin) return cb(null, true);                // allow server-to-server tools
-    if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-    return cb(new Error('CORS not allowed'), false);   // block others
-  },
+  origin: ['https://medicine-remainder-five.vercel.app'], // EXACT origin
+  credentials: true,
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization'],
-  credentials: true,
   optionsSuccessStatus: 204,
-  preflightContinue: false,
 };
 
-// 1) CORS FIRST
-app.use(cors(corsOptions));
-// 2) Fast preflight
-app.options('*', cors(corsOptions));
+app.use(cors(corsOptions));       // apply to all routes
+app.options('*', cors(corsOptions));  // reply to preflights quickly
 
-// 3) Body parsers
+/* ---------- Body parsers next ---------- */
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -259,6 +250,7 @@ app.post('/api/test-push', authMiddleware, async (req, res) => {
 /* ---------- Start ---------- */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 API up on http://localhost:${PORT}`));
+
 
 
 

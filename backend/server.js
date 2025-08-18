@@ -18,28 +18,16 @@ const admin = require('./firebaseAdmin'); // single shared Firebase Admin init
 
 const app = express();
 
-/* ---------- Security / Perf Middlewares (must be after app = express()) ---------- */
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-app.use(compression());
-app.use(morgan('tiny'));
-app.set('trust proxy', 1);
-
-const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 300 });
-app.use('/api/', apiLimiter);
-
-/* ---------- CORS (single source of truth) ---------- */
+/* ---------- CORS (must be FIRST) ---------- */
 const ALLOWED_ORIGINS = [
-  'https://medicine-remainder-five.vercel.app',
+  'https://medicine-remainder-five.vercel.app', // your Vercel site
 ];
 
 const corsOptions = {
   origin: function (origin, cb) {
-    // Allow server-to-server or local tools with no Origin
-    if (!origin) return cb(null, true);
-    // Allow your Vercel site
+    if (!origin) return cb(null, true);                // allow server-to-server tools
     if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-    // Block others (but don't crash; just deny)
-    return cb(new Error('CORS not allowed'), false);
+    return cb(new Error('CORS not allowed'), false);   // block others
   },
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization'],
@@ -48,14 +36,29 @@ const corsOptions = {
   preflightContinue: false,
 };
 
-// 1) CORS **before** anything else
+// 1) CORS FIRST
 app.use(cors(corsOptions));
-// 2) Make sure all preflights get the headers
+// 2) Fast preflight
 app.options('*', cors(corsOptions));
 
-// 3) Body parsers next
+// 3) Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+/* ---------- Security / Perf ---------- */
+const helmet = require('helmet');
+const compression = require('compression');
+const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
+
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(compression());
+app.use(morgan('tiny'));
+app.set('trust proxy', 1);
+
+const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 300 });
+app.use('/api/', apiLimiter);
+
 
 /* ---------- DB Connect ---------- */
 mongoose
@@ -256,6 +259,7 @@ app.post('/api/test-push', authMiddleware, async (req, res) => {
 /* ---------- Start ---------- */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 API up on http://localhost:${PORT}`));
+
 
 
 

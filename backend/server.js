@@ -108,6 +108,8 @@ function authMiddleware(req, res, next) {
     return res.status(401).json({ message: 'Invalid or expired token' });
   }
 }
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
 /* ---------- Routes ---------- */
 
@@ -283,6 +285,7 @@ app.post('/api/test-push', authMiddleware, async (req, res) => {
 /* ---------- Start ---------- */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 API up on http://localhost:${PORT}`));
+
 
 
 

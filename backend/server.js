@@ -1,5 +1,30 @@
 // backend/server.js
 require('dotenv').config();
+const helmet = require('helmet');
+const compression = require('compression');
+const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
+
+// security headers
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }, // allow assets if needed
+}));
+
+// gzip
+app.use(compression());
+
+// logging
+app.use(morgan('tiny'));
+
+// basic rate limit on auth + API
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 min
+  limit: 300,
+});
+app.use('/api/', apiLimiter);
+
+// behind proxy (Render)
+app.set('trust proxy', 1);
 
 const express = require('express');
 const cors = require('cors');
@@ -232,6 +257,7 @@ app.post('/api/test-push', authMiddleware, async (req, res) => {
 /* ---------- Start ---------- */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 API up on http://localhost:${PORT}`));
+
 
 
 

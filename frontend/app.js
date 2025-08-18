@@ -8,7 +8,8 @@
 
 // -------------------- API Helpers --------------------
 // === API helpers ===
-const API_BASE = 'http://localhost:5000'; // change to your deployed URL later
+const API_BASE = 'https://medicine-remainder-dc9z.onrender.com';
+ // change to your deployed URL later
 
 function authHeader() {
   const jwt = localStorage.getItem('jwt');

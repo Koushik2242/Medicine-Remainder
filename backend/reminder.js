@@ -7,7 +7,8 @@ const User = require('./models/User');
 
 // ---- Firebase Admin (safe init) ----
 // ---- Firebase Admin (safe init) ----
-const admin = require('firebase-admin');
+const admin = require('./server'); // import the initialized admin
+
 try {
   if (!admin.apps.length) {
     const svc = process.env.FIREBASE_SERVICE_ACCOUNT_JSON
@@ -106,4 +107,5 @@ cron.schedule('* * * * *', async () => {
     console.error('Cron job error:', err);
   }
 });
+
 

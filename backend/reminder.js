@@ -6,14 +6,20 @@ const Medication = require('./models/Medication');
 const User = require('./models/User');
 
 // ---- Firebase Admin (safe init) ----
+// ---- Firebase Admin (safe init) ----
+const admin = require('firebase-admin');
 try {
   if (!admin.apps.length) {
-    const serviceAccount = require('./firebase-service-account.json');
-    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+    const svc = process.env.FIREBASE_SERVICE_ACCOUNT_JSON
+      ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON)
+      : require('./firebase-service-account.json'); // local dev fallback
+
+    admin.initializeApp({ credential: admin.credential.cert(svc) });
   }
 } catch (e) {
   console.warn('firebase-admin init:', e.message);
 }
+
 
 // ---- Email (optional) ----
 const transporter = nodemailer.createTransport({
@@ -100,3 +106,4 @@ cron.schedule('* * * * *', async () => {
     console.error('Cron job error:', err);
   }
 });
+

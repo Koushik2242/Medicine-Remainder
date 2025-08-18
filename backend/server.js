@@ -36,6 +36,32 @@ const User = require('./models/User');
 const Medication = require('./models/Medication');
 
 const app = express();
+// ---- CORS (allow your Vercel site) ----
+const cors = require('cors');
+
+const ALLOWED_ORIGINS = [
+  'https://medicine-remainder-five.vercel.app',
+];
+
+// Make sure preflight gets all headers back
+app.use(cors({
+  origin: (origin, cb) => {
+    // allow same-origin (no Origin header) and your Vercel site
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    return cb(new Error('Not allowed by CORS'));
+  },
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization'],
+  credentials: true,
+}));
+
+// Explicitly answer preflight fast
+app.options('*', cors({
+  origin: ALLOWED_ORIGINS,
+  allowedHeaders: ['Content-Type','Authorization'],
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  credentials: true,
+}));
 
 /* ---------- Firebase Admin (push) ---------- */
 /* ---------- Firebase Admin (push) ---------- */
@@ -257,6 +283,7 @@ app.post('/api/test-push', authMiddleware, async (req, res) => {
 /* ---------- Start ---------- */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 API up on http://localhost:${PORT}`));
+
 
 
 

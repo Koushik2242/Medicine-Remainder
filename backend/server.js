@@ -1,30 +1,5 @@
 // backend/server.js
 require('dotenv').config();
-const helmet = require('helmet');
-const compression = require('compression');
-const morgan = require('morgan');
-const rateLimit = require('express-rate-limit');
-
-// security headers
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'cross-origin' }, // allow assets if needed
-}));
-
-// gzip
-app.use(compression());
-
-// logging
-app.use(morgan('tiny'));
-
-// basic rate limit on auth + API
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 min
-  limit: 300,
-});
-app.use('/api/', apiLimiter);
-
-// behind proxy (Render)
-app.set('trust proxy', 1);
 
 const express = require('express');
 const cors = require('cors');
@@ -32,21 +7,32 @@ const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
+const helmet = require('helmet');
+const compression = require('compression');
+const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
+
 const User = require('./models/User');
 const Medication = require('./models/Medication');
+const admin = require('./firebaseAdmin'); // single shared Firebase Admin init
 
 const app = express();
-// ---- CORS (allow your Vercel site) ----
-const cors = require('cors');
 
+/* ---------- Security / Perf Middlewares (must be after app = express()) ---------- */
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(compression());
+app.use(morgan('tiny'));
+app.set('trust proxy', 1);
+
+const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 300 });
+app.use('/api/', apiLimiter);
+
+/* ---------- CORS (single source of truth) ---------- */
 const ALLOWED_ORIGINS = [
-  'https://medicine-remainder-five.vercel.app',
+  'https://medicine-remainder-five.vercel.app', // your Vercel domain
 ];
-
-// Make sure preflight gets all headers back
 app.use(cors({
   origin: (origin, cb) => {
-    // allow same-origin (no Origin header) and your Vercel site
     if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
     return cb(new Error('Not allowed by CORS'));
   },
@@ -54,62 +40,36 @@ app.use(cors({
   allowedHeaders: ['Content-Type','Authorization'],
   credentials: true,
 }));
+app.options('*', cors()); // fast preflight
 
-// Explicitly answer preflight fast
-app.options('*', cors({
-  origin: ALLOWED_ORIGINS,
-  allowedHeaders: ['Content-Type','Authorization'],
-  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-  credentials: true,
-}));
-
-/* ---------- Firebase Admin (push) ---------- */
-/* ---------- Firebase Admin (push) ---------- */
-
-const admin = require('./firebaseAdmin');
-
-
-/* ---------- Middleware (CORS + JSON) ---------- */
-/* CORS must be before any routes */
-const corsOptions = {
-  origin: ['https://medicine-remainder-9r9u076hf-koushiks-projects-8a22523c.vercel.app/'], // your frontend origin
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-};
-app.use(cors(corsOptions));
-// NOTE: do NOT add app.options('*' or '/api/*') — it breaks on path-to-regexp
+/* ---------- Body Parsers ---------- */
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
 /* ---------- DB Connect ---------- */
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => {
     console.log('✅ Connected to MongoDB');
-    // start reminder job after DB is ready
-    require('./reminder');
+    // start reminder worker ONLY in worker service, not here
+    // require('./reminder');  // <-- keep this OUT of the web service if you run a separate Background Worker
   })
   .catch((err) => console.error('❌ MongoDB connection error:', err));
 
-/* ---------- Auth Helpers ---------- */
+/* ---------- Auth helpers (unchanged) ---------- */
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
-
 function authMiddleware(req, res, next) {
   try {
     const header = req.headers.authorization || '';
     const [type, token] = header.split(' ');
-    if (type !== 'Bearer' || !token) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
+    if (type !== 'Bearer' || !token) return res.status(401).json({ message: 'Unauthorized' });
     const payload = jwt.verify(token, JWT_SECRET);
     req.userId = payload.userId;
     next();
-  } catch (err) {
+  } catch {
     return res.status(401).json({ message: 'Invalid or expired token' });
   }
 }
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
 
 /* ---------- Routes ---------- */
 
@@ -285,6 +245,7 @@ app.post('/api/test-push', authMiddleware, async (req, res) => {
 /* ---------- Start ---------- */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 API up on http://localhost:${PORT}`));
+
 
 
 
